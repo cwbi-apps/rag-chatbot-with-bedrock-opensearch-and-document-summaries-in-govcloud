@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: CodeBuild and ECR resources to create and store container images needed for production-like deployment of chatbot demo
 
 Parameters:
@@ -23,7 +23,7 @@ Parameters:
     Default: chatbot-demo-container-build
 
 Resources:
-# Lambda Index container CodeBuild, ECR, and IAM role
+  # Lambda Index container CodeBuild, ECR, and IAM role
   LambdaIndexCodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -38,25 +38,25 @@ Resources:
         Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
         PrivilegedMode: true
         EnvironmentVariables:
-        - Name: IMAGE_REPO_NAME
-          Type: PLAINTEXT
-          Value: !Ref LambdaIndexEcrRepositoryName
-        - Name: AWS_ACCOUNT_ID
-          Type: PLAINTEXT
-          Value: !Ref AWS::AccountId
+          - Name: IMAGE_REPO_NAME
+            Type: PLAINTEXT
+            Value: !Ref LambdaIndexEcrRepositoryName
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref AWS::AccountId
       Source:
         Type: GITHUB
-        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        Location: https://github.com/cwbi-apps/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
         BuildSpec: containers/lambda_index/buildspec.yml
         GitCloneDepth: 1
       SourceVersion: main
       TimeoutInMinutes: 10
 
-  LambdaIndexRepository: 
+  LambdaIndexRepository:
     Type: AWS::ECR::Repository
-    Properties: 
+    Properties:
       RepositoryName: !Ref LambdaIndexEcrRepositoryName
-      ImageScanningConfiguration: 
+      ImageScanningConfiguration:
         ScanOnPush: true
 
   LambdaIndexCodeBuildProjectServiceRole:
@@ -115,11 +115,11 @@ Resources:
               - ecr:BatchCheckLayerAvailability
               - ecr:GetDownloadUrlForLayer
               - ecr:PutImage
-            Resource: 
+            Resource:
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_index
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_index:*
 
-# Lambda OpenSearch Setup container CodeBuild, ECR, and IAM role
+  # Lambda OpenSearch Setup container CodeBuild, ECR, and IAM role
   LambdaOpenSearchSetupCodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -134,25 +134,25 @@ Resources:
         Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
         PrivilegedMode: true
         EnvironmentVariables:
-        - Name: IMAGE_REPO_NAME
-          Type: PLAINTEXT
-          Value: !Ref LambdaOpenSearchSetupEcrRepositoryName
-        - Name: AWS_ACCOUNT_ID
-          Type: PLAINTEXT
-          Value: !Ref AWS::AccountId
+          - Name: IMAGE_REPO_NAME
+            Type: PLAINTEXT
+            Value: !Ref LambdaOpenSearchSetupEcrRepositoryName
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref AWS::AccountId
       Source:
         Type: GITHUB
-        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        Location: https://github.com/cwbi-apps/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
         BuildSpec: containers/lambda_setup_opensearch/buildspec.yml
         GitCloneDepth: 1
       SourceVersion: main
       TimeoutInMinutes: 10
 
-  LambdaOpenSearchSetupRepository: 
+  LambdaOpenSearchSetupRepository:
     Type: AWS::ECR::Repository
-    Properties: 
+    Properties:
       RepositoryName: !Ref LambdaOpenSearchSetupEcrRepositoryName
-      ImageScanningConfiguration: 
+      ImageScanningConfiguration:
         ScanOnPush: true
 
   LambdaOpenSearchSetupCodeBuildRole:
@@ -211,11 +211,11 @@ Resources:
               - ecr:BatchCheckLayerAvailability
               - ecr:GetDownloadUrlForLayer
               - ecr:PutImage
-            Resource: 
+            Resource:
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_setup_opensearch
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_setup_opensearch:*
 
-# Streamlit container CodeBuild, ECR, and IAM role
+  # Streamlit container CodeBuild, ECR, and IAM role
   StreamlitContainerCodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -230,25 +230,25 @@ Resources:
         Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
         PrivilegedMode: true
         EnvironmentVariables:
-        - Name: IMAGE_REPO_NAME
-          Type: PLAINTEXT
-          Value: !Ref StreamlitImageEcrRepositoryName
-        - Name: AWS_ACCOUNT_ID
-          Type: PLAINTEXT
-          Value: !Ref AWS::AccountId
+          - Name: IMAGE_REPO_NAME
+            Type: PLAINTEXT
+            Value: !Ref StreamlitImageEcrRepositoryName
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref AWS::AccountId
       Source:
         Type: GITHUB
-        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        Location: https://github.com/cwbi-apps/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
         BuildSpec: containers/streamlit/buildspec.yml
         GitCloneDepth: 1
       SourceVersion: main
       TimeoutInMinutes: 10
 
-  StreamlitContainerRepository: 
+  StreamlitContainerRepository:
     Type: AWS::ECR::Repository
-    Properties: 
+    Properties:
       RepositoryName: !Ref StreamlitImageEcrRepositoryName
-      ImageScanningConfiguration: 
+      ImageScanningConfiguration:
         ScanOnPush: true
 
   StreamlitContainerCodeBuildProjectServiceRole:
@@ -307,6 +307,6 @@ Resources:
               - ecr:BatchCheckLayerAvailability
               - ecr:GetDownloadUrlForLayer
               - ecr:PutImage
-            Resource: 
+            Resource:
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${StreamlitImageEcrRepositoryName}
               - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${StreamlitImageEcrRepositoryName}:*
