@@ -14,23 +14,23 @@ Parameters:
   VpcCidrBlock:
     Description: CIDR block for the VPC
     Type: String
-    Default: 172.32.0.0/16
+    Default: 172.31.0.0/16
   PrivateSubnet1CidrBlock:
     Description: CIDR block for Private Subnet
     Type: String
-    Default: 172.32.1.0/24
+    Default: 172.31.1.0/24
   PrivateSubnet2CidrBlock:
     Description: CIDR block for Private Subnet
     Type: String
-    Default: 172.32.2.0/24
+    Default: 172.31.2.0/24
   PublicSubnet1CidrBlock:
     Description: CIDR block for Public Subnet
     Type: String
-    Default: 172.32.3.0/24
+    Default: 172.31.3.0/24
   PublicSubnet2CidrBlock:
     Description: CIDR block for Public Subnet
     Type: String
-    Default: 172.32.4.0/24
+    Default: 172.31.4.0/24
   NameTag:
     Description: The value of the Name tag for resources created in this stack
     Type: String
