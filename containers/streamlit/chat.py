@@ -9,7 +9,13 @@ from get_opensearch_model_id import opensearch_model_id
 import logging
 from rag_search_config_helper import read_rag_search_config
 
-st.title("Question and Answer Bot")
+st.set_page_config(layout="wide")
+st.title("CWBI J-Sheet Chatbot")    
+with st.sidebar:
+    st.image("USACE_logo.jpg")
+    st.image("CWBI_Logo.png")
+    st.header("UNCLASSIFIED - DEMO")
+    st.subheader("*Answers are generated with the help of generative AI. Please confirm all important information.")
 
 # Get the OpenSearch model ID
 opensearch_model_id = opensearch_model_id()
@@ -40,12 +46,12 @@ bedrock_guardrails_block_message = list(filter(lambda stack_parameters: stack_pa
 # Build the user interface
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Ask me a question about your documents."}
+        {"role": "assistant", "content": "Ask me a question about USACE budget justification sheets."}
     ]
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.text(message["content"])
 
 if query_text := st.chat_input("Enter your question"):
     st.session_state.messages.append({"role": "user", "content": query_text})
@@ -64,8 +70,7 @@ if query_text := st.chat_input("Enter your question"):
                         "{context}\n"
                         "---------------------\n"
                         "You are an assistant for answering questions. "
-                        "You are given the extracted parts long documents as context and a question. "
-                        "Provide a conversational answer. "
+                        "You are given the extracted parts of long documents as context and a question. "
                         "If you don't know the answer, just say 'I do not know.' Don't make up an answer.\n"
                         "Query: {query_text}\n"
                         "Answer: "
@@ -87,19 +92,54 @@ if query_text := st.chat_input("Enter your question"):
                     "inputText": prompt_data,
                     "textGenerationConfig": text_gen_config
                 })
+                
 
                 bedrock_response = bedrock_runtime.invoke_model(
-                    modelId = config_dict['bedrock_model_id'], 
+                    modelId = config_dict['bedrock_model_id'],
                     body = body, 
                     accept = accept, 
-                    contentType = content_type,
-                    guardrailIdentifier = bedrock_guardrail_id,
-                    guardrailVersion = bedrock_guardrail_version
+                    contentType = content_type
                 )
+                ## lines below can go in invokemodel
+                #guardrailIdentifier = bedrock_guardrail_id,
+                #guardrailVersion = bedrock_guardrail_version
+                
                 response_body = json.loads(bedrock_response.get('body').read())
                 output_text = response_body.get('results')[0].get('outputText')
 
+
             # If config file says use a Llama 3 model, invoke that model
+            elif "anthropic.claude-3-5-sonnet" in config_dict['bedrock_model_id']:
+                text_gen_config = {
+                    "maxTokenCount": config_dict['max_token_count'],
+                    "stopSequences": [], 
+                    "temperature": config_dict['temperature'],
+                    "topP": config_dict['top_p']
+                }
+                accept = 'application/json' 
+                content_type = 'application/json'
+                body = json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1000,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": prompt_data
+                      }
+                    ]
+                }]
+                })
+                bedrock_response = bedrock_runtime.invoke_model(
+                    modelId = config_dict['bedrock_model_id'],
+                    body = body, 
+                    accept = accept, 
+                    contentType = content_type
+                )
+                response_body = json.loads(bedrock_response.get('body').read())
+                output_text = response_body['content'][0]['text']
+                
             elif "meta.llama3" in config_dict['bedrock_model_id']:
                 native_request = {
                     "prompt": prompt_data,
@@ -109,10 +149,11 @@ if query_text := st.chat_input("Enter your question"):
                 request = json.dumps(native_request)
                 bedrock_response = bedrock_runtime.invoke_model(
                     modelId = config_dict['bedrock_model_id'],
-                    body = request,
-                    guardrailIdentifier = bedrock_guardrail_id,
-                    guardrailVersion = bedrock_guardrail_version
+                    body = request
                 )
+                ##can go in invokemodel
+                #guardrailIdentifier = bedrock_guardrail_id,
+                #guardrailVersion = bedrock_guardrail_version
                 response_body = json.loads(bedrock_response["body"].read())
                 output_text = response_body["generation"]
 
@@ -120,8 +161,8 @@ if query_text := st.chat_input("Enter your question"):
             else:
                 output_text = "Invalid model in config file."
 
-            st.markdown(output_text)
-#            st.write(output_text)
+            #st.markdown(output_text)
+            st.text(output_text)
             if output_text != bedrock_guardrails_block_message:
                 with st.expander("References"):
                     st.write(reference_text)
