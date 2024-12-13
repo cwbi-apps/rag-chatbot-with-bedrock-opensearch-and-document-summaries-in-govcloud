@@ -59,9 +59,10 @@ def read_docx(bucket_name, key):
 #Function to split and summarize a text string using a Langchain text splitter object and Titan Text Express on Bedrock
 def split_and_summarize_text_until_sized(region_name, text, max_summary_length):
     text_splitter_object = RecursiveCharacterTextSplitter(
-        chunk_size=15000,
-        chunk_overlap=100,
-        length_function=len,
+        chunk_size=16000, #may need to be changed
+        chunk_overlap=200,
+        length_function=len
+        #separators=["APPROPRIATION TITLE:"]
     )
 
     bedrock_runtime_object = boto3.client(
@@ -71,16 +72,21 @@ def split_and_summarize_text_until_sized(region_name, text, max_summary_length):
 
     llm_prompt_template = '''The following is a document:
         {text_to_summarize}
-        Summarize the key points of the document in no more than 4 sentences.'''
-    
+        Summarize the key points of the document in no more than 10 sentences. Do not use lists or bullets.  '''
+
+#    llm_prompt_template = '''The following is a document:
+#        {text_to_summarize}
+#        state the APPROPRIATION TITLE if available.  List the PROJECT NAMEs if available.  Include financial figures if available.  Do not use lists or bullets. '''
+
     text_gen_config = {
-        "maxTokenCount": 500,
+        "maxTokenCount": 1000,
         "stopSequences": [], 
         "temperature": 0,
         "topP": 1
     }
     
-    model_id = 'amazon.titan-text-express-v1'
+    #model_id = 'amazon.titan-text-express-v1'
+    model_id = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
     accept = 'application/json' 
     content_type = 'application/json'
     
@@ -90,10 +96,26 @@ def split_and_summarize_text_until_sized(region_name, text, max_summary_length):
         sections = text_splitter_object.split_text(text)
         for section in sections:
             prompt_data = llm_prompt_template.replace("{text_to_summarize}", section)
+            #body = json.dumps({
+            #"inputText": prompt_data,
+            #"textGenerationConfig": text_gen_config  
+            #})
+            
+            #updated to match claude 3.5 sonnet 
             body = json.dumps({
-            "inputText": prompt_data,
-            "textGenerationConfig": text_gen_config  
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1000,
+            "messages": [{
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": prompt_data
+                  }
+                ]
+            }]
             })
+            
             response = bedrock_runtime_object.invoke_model(
                 body=body, 
                 modelId=model_id, 
@@ -101,12 +123,16 @@ def split_and_summarize_text_until_sized(region_name, text, max_summary_length):
                 contentType=content_type
             )
             response_body = json.loads(response['body'].read())
-            if not "Sorry - this model is unable to" in response_body['results'][0]['outputText']:
-                new_text += response_body['results'][0]['outputText'] + " "
-            else:
-                print(response_body['results'][0]['outputText'])
+            new_text += response_body['content'][0]['text']
+            #print(new_text)
+            #if not "Sorry - this model is unable to" in response_body['results'][0]['outputText']:
+                #new_text += response_body['results'][0]['outputText'] + " "
+            #else:
+                ##print(response_body['results'][0]['outputText'])
+                #print(response_body['results'][0])
                 
         text = new_text
+    #print(text)
     return text
 
 def summarize_md_document(region_name, bucket_name, key, max_summary_length):
@@ -137,6 +163,7 @@ def summarize_pdf_document(region_name, bucket_name, key, max_summary_length):
     return summary_text
 
 def summarize_docx_document(region_name, bucket_name, key, max_summary_length):
+    print(f"DOCUMENT BEING SUMMARIZED: {key}")
     text = read_docx(
         bucket_name = bucket_name,
         key = key
@@ -152,9 +179,10 @@ def summarize_docx_document(region_name, bucket_name, key, max_summary_length):
 def summarize_documents(region_name, bucket_name, key_list, max_summary_length):
 
     text_splitter_object = RecursiveCharacterTextSplitter(
-        chunk_size=512,
-        chunk_overlap=0,
-        length_function=len,
+        chunk_size=2048,
+        chunk_overlap=200,
+        length_function=len
+        #separators=["APPROPRIATION TITLE:"]
     )
     
     opensearch_payload = []
@@ -186,10 +214,35 @@ def summarize_documents(region_name, bucket_name, key_list, max_summary_length):
         sections = text_splitter_object.split_text(summary)
         for section_number, section in enumerate(sections):
             clean_section = section.replace(" \n", " ").replace("\n", " ")
+            #grabbing FY and adding to text -Jaylen
+            if "2025" in key:
+                FY_text = ": For Fiscal Year 2025 (FY25), "
+            if "2024" in key:
+                FY_text = ": For Fiscal Year 2024 (FY24), "
+            if "2023" in key:
+                FY_text = ": For Fiscal Year 2023 (FY23), "
+            if "2022" in key:
+                FY_text = ": For Fiscal Year 2022 (FY22), "
+            if "2021" in key:
+                FY_text = ": For Fiscal Year 2021 (FY21), "
+            if "2020" in key:
+                FY_text = ": For Fiscal Year 2020 (FY20), "
+            if "2019" in key:
+                FY_text = ": For Fiscal Year 2019 (FY19), "
+            if "2018" in key:
+                FY_text = ": For Fiscal Year 2018 (FY18), "
+            if "2017" in key:
+                FY_text = ": For Fiscal Year 2017 (FY17), "
+            if "2016" in key:
+                FY_text = ": For Fiscal Year 2016 (FY16), "
+            if "2015" in key:
+                FY_text = ": For Fiscal Year 2015 (FY15), "
+            title_text = key.split("-")[-1]
+            title_text = title_text.split(".")[0]
             body = {
                "document": key,
                 "section": section_number,
-                "text": clean_section
+                "text": title_text+FY_text+clean_section
             }
             
             opensearch_payload.append(body)
@@ -205,7 +258,8 @@ def index_opensearch_summary_payload(region_name, opensearch_host, opensearch_pa
         http_auth = auth,
         use_ssl = True,
         verify_certs = True,
-        connection_class = RequestsHttpConnection
+        connection_class = RequestsHttpConnection,
+        timeout = 60
     )
 
     # Define the dictionary to summarize result
@@ -288,9 +342,10 @@ def text_string_to_opensearch(text, key, opensearch_client, full_text_index_name
     elif file_extension == ".docx":
         # Create a langchain text splitter object for plaintext and split into sections
         plaintext_text_splitter_object = RecursiveCharacterTextSplitter(
-            chunk_size=512,
-            chunk_overlap=0,
+            chunk_size=2048,
+            chunk_overlap=200,
             length_function=len
+            #separators=["APPROPRIATION TITLE:"]
         )
         sections = plaintext_text_splitter_object.split_text(text)
     
@@ -336,6 +391,7 @@ def split_and_index_full_text(region_name, opensearch_host, bucket_name, key_lis
         hosts = [{'host': opensearch_host, 'port': 443}],
         http_auth = auth,
         use_ssl = True,
+        timeout = 100,
         verify_certs = True,
         connection_class = RequestsHttpConnection
     )
