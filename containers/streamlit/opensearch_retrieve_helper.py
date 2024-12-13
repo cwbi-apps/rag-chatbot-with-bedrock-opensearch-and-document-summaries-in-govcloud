@@ -32,7 +32,8 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
         http_auth = auth,
         use_ssl = True,
         verify_certs = True,
-        connection_class = RequestsHttpConnection
+        connection_class = RequestsHttpConnection,
+        timeout = 60
     )
 
     # Do a semantic search for the search term on the summary index
@@ -47,7 +48,7 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
                     "text_embedding": {
                     "query_text": query_text,
                     "model_id": opensearch_model_id,
-                    "k": 30
+                    "k": 50
                     }
                 }
             }
@@ -79,13 +80,13 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
         "_source": {
             "excludes": [ "text_embedding" ]
         },
-        "size": 20,
+#        "size": 30,
         "query": {
             "neural": {
                 "text_embedding": {
                 "query_text": query_text,
                 "model_id": opensearch_model_id,
-                "k": 30
+                "k": 50
                 }
             }
         }
